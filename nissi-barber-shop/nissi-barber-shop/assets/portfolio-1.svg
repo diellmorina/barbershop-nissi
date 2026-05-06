@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="700" height="500" viewBox="0 0 700 500">
-<defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#171717"/><stop offset="1" stop-color="#4a3218"/></linearGradient></defs>
-<rect width="700" height="500" fill="url(#g1)"/>
-<circle cx="350" cy="185" r="95" fill="#d4a65a"/>
-<path d="M205 430c25-120 105-190 145-190s120 70 145 190" fill="#f4dfb8"/>
-<path d="M250 135c65-55 135-55 200 0" fill="none" stroke="#f4dfb8" stroke-width="22" stroke-linecap="round"/>
-<text x="350" y="470" font-family="Arial" font-size="34" font-weight="700" text-anchor="middle" fill="#d4a65a">Nissi Style 1</text>
-</svg>
