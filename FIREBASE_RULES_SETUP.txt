@@ -1,0 +1,66 @@
+# FIREBASE RULES PËR ADMIN PANELIN
+
+Nëse ndryshimet nuk ruhen në cloud, zakonisht problemi është te Firestore Rules ose Storage Rules.
+
+## 1. Firestore Rules
+
+Firebase Console → Firestore Database → Rules
+
+Vendos këto:
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /siteContent/{document} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+  }
+}
+
+Pastaj kliko Publish.
+
+## 2. Storage Rules
+
+Firebase Console → Storage → Rules
+
+Vendos këto:
+
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /portfolio/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null
+                   && request.resource.size < 4 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+  }
+}
+
+Pastaj kliko Publish.
+
+## 3. Kontrollo Authentication
+
+Firebase Console → Authentication → Sign-in method
+Aktivizo Email/Password.
+
+Firebase Console → Authentication → Users
+Shto admin user-in me email/password.
+
+## 4. Kontrollo domain
+
+Nëse website është në Vercel/Netlify/domain tjetër:
+Firebase Console → Authentication → Settings → Authorized domains
+Shto domain-in ku është hostuar website-i.
+
+## 5. Test
+
+Hape website me Live Server ose nga hosting.
+Shtyp /
+Kyçu si admin.
+Ndrysho tekstin.
+Kliko Ruaj në Cloud.
+Bëj refresh. Ndryshimi duhet të mbetet.

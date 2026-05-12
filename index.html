@@ -144,43 +144,47 @@
       <div class="text-center mb-5">
         <p class="section-kicker">Portofolio</p>
         <h2 class="section-title">Punimet tona</h2>
-        <p class="text-muted mx-auto portfolio-subtitle">Disa stile që mund t'i përdorësh si shembull. Zëvendëso fotot me punimet reale të barber shop-it.</p>
+        <p class="text-muted mx-auto portfolio-subtitle">Punimet tona lidhen automatikisht me postimet e Instagram-it kur website-i publikohet me Firebase Functions.</p>
+        <a class="instagram-feed-link" href="https://www.instagram.com/frizernisi?igsh=MXVkdTE1OTVlajRzcA==" target="_blank" rel="noopener noreferrer">
+          <i class="bi bi-instagram"></i> @frizernisi
+        </a>
+        <div class="instagram-feed-status small text-muted mt-2" id="instagramFeedStatus">Duke përdorur fotot lokale derisa të lidhet Instagram API.</div>
       </div>
-      <div class="row g-4">
+      <div class="row g-4" id="instagramPortfolioGrid">
         <div class="col-md-6 col-lg-4">
           <div class="portfolio-card">
             <img src="assets/portfolio-1.svg" alt="Prerje fade" class="img-fluid" data-admin-image="portfolio1">
-            <div class="portfolio-overlay"><h5>Skin Fade</h5></div>
+            <div class="portfolio-overlay"><h5 data-admin-text="portfolioTitle1">Skin Fade</h5></div>
           </div>
         </div>
         <div class="col-md-6 col-lg-4">
           <div class="portfolio-card">
             <img src="assets/portfolio-2.svg" alt="Mjekër e rregulluar" class="img-fluid" data-admin-image="portfolio2">
-            <div class="portfolio-overlay"><h5>Beard Trim</h5></div>
+            <div class="portfolio-overlay"><h5 data-admin-text="portfolioTitle2">Beard Trim</h5></div>
           </div>
         </div>
         <div class="col-md-6 col-lg-4">
           <div class="portfolio-card">
             <img src="assets/portfolio-3.svg" alt="Prerje klasike" class="img-fluid" data-admin-image="portfolio3">
-            <div class="portfolio-overlay"><h5>Classic Cut</h5></div>
+            <div class="portfolio-overlay"><h5 data-admin-text="portfolioTitle3">Classic Cut</h5></div>
           </div>
         </div>
         <div class="col-md-6 col-lg-4">
           <div class="portfolio-card">
             <img src="assets/portfolio-4.svg" alt="Stilim modern" class="img-fluid" data-admin-image="portfolio4">
-            <div class="portfolio-overlay"><h5>Modern Style</h5></div>
+            <div class="portfolio-overlay"><h5 data-admin-text="portfolioTitle4">Modern Style</h5></div>
           </div>
         </div>
         <div class="col-md-6 col-lg-4">
           <div class="portfolio-card">
             <img src="assets/portfolio-5.svg" alt="Hair design" class="img-fluid" data-admin-image="portfolio5">
-            <div class="portfolio-overlay"><h5>Hair Design</h5></div>
+            <div class="portfolio-overlay"><h5 data-admin-text="portfolioTitle5">Hair Design</h5></div>
           </div>
         </div>
         <div class="col-md-6 col-lg-4">
           <div class="portfolio-card">
             <img src="assets/portfolio-6.svg" alt="Full service" class="img-fluid" data-admin-image="portfolio6">
-            <div class="portfolio-overlay"><h5>Premium Look</h5></div>
+            <div class="portfolio-overlay"><h5 data-admin-text="portfolioTitle6">Premium Look</h5></div>
           </div>
         </div>
       </div>
@@ -324,9 +328,9 @@
 
 
   <!-- Admin Panel: hapet me tastin / ose butonin poshtë -->
-  <!-- <button class="admin-open-btn" id="adminOpenBtn" type="button" aria-label="Hap admin panelin">
+  <button class="admin-open-btn" id="adminOpenBtn" type="button" aria-label="Hap admin panelin">
     <span>/</span> Admin
-  </button> -->
+  </button>
 
   <div class="admin-panel-backdrop" id="adminBackdrop" aria-hidden="true"></div>
   <aside class="admin-panel" id="adminPanel" aria-hidden="true">
@@ -413,7 +417,7 @@
           </h2>
           <div id="adminPortfolioImages" class="accordion-collapse collapse" data-bs-parent="#adminAccordion">
             <div class="accordion-body admin-grid">
-              <p class="text-white-50 small mb-1">Vendos link të fotos, ose zgjidh foto nga kompjuteri. Fotot ruhen si data brenda Firestore, prandaj përdor foto jo shumë të mëdha për test.</p>
+              <p class="text-white-50 small mb-1">Vendos link të fotos, ose zgjidh foto nga kompjuteri. Fotot bëhen upload në Cloudinary dhe URL ruhet në Firestore, prandaj shfaqen për të gjithë vizitorët online.</p>
               <label>Foto 1 URL<input class="form-control admin-input" data-admin-input="image" data-key="portfolio1" placeholder="https://... ose upload"></label>
               <input type="file" class="form-control admin-input admin-file-input" accept="image/*" data-file-target="portfolio1">
               <label>Foto 2 URL<input class="form-control admin-input" data-admin-input="image" data-key="portfolio2" placeholder="https://... ose upload"></label>
@@ -426,6 +430,14 @@
               <input type="file" class="form-control admin-input admin-file-input" accept="image/*" data-file-target="portfolio5">
               <label>Foto 6 URL<input class="form-control admin-input" data-admin-input="image" data-key="portfolio6" placeholder="https://... ose upload"></label>
               <input type="file" class="form-control admin-input admin-file-input" accept="image/*" data-file-target="portfolio6">
+              <hr class="border-secondary my-2">
+              <p class="text-white-50 small mb-1">Teksti poshtë fotos është opsional. Lëre bosh nëse nuk do tekst.</p>
+              <label>Teksti Foto 1<input class="form-control admin-input" data-admin-input="text" data-key="portfolioTitle1" placeholder="p.sh. Skin Fade ose lëre bosh"></label>
+              <label>Teksti Foto 2<input class="form-control admin-input" data-admin-input="text" data-key="portfolioTitle2" placeholder="Opsional"></label>
+              <label>Teksti Foto 3<input class="form-control admin-input" data-admin-input="text" data-key="portfolioTitle3" placeholder="Opsional"></label>
+              <label>Teksti Foto 4<input class="form-control admin-input" data-admin-input="text" data-key="portfolioTitle4" placeholder="Opsional"></label>
+              <label>Teksti Foto 5<input class="form-control admin-input" data-admin-input="text" data-key="portfolioTitle5" placeholder="Opsional"></label>
+              <label>Teksti Foto 6<input class="form-control admin-input" data-admin-input="text" data-key="portfolioTitle6" placeholder="Opsional"></label>
             </div>
           </div>
         </div>
@@ -474,5 +486,6 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <!-- Custom JS -->
   <script type="module" src="js/script.js"></script>
+  <script type="module" src="js/instagram-feed.js"></script>
 </body>
 </html>
