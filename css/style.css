@@ -1014,3 +1014,53 @@ img, svg {
     font-size: 1.35rem;
   }
 }
+
+
+/* Instagram feed connection */
+.instagram-feed-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  color: #111;
+  background: rgba(212,166,90,0.16);
+  border: 1px solid rgba(212,166,90,0.34);
+  padding: 10px 16px;
+  border-radius: 999px;
+  font-weight: 800;
+}
+
+.instagram-feed-link:hover {
+  background: var(--gold);
+  color: #111;
+}
+
+.instagram-feed-status {
+  min-height: 22px;
+}
+
+.instagram-linked-card {
+  cursor: pointer;
+}
+
+.instagram-linked-card:focus {
+  outline: 3px solid rgba(212,166,90,0.45);
+  outline-offset: 4px;
+}
+
+@media (max-width: 576px) {
+  .instagram-feed-link {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+
+/* Optional portfolio image text */
+.portfolio-overlay h5:empty {
+  display: none;
+}
+
+.portfolio-overlay:has(h5:empty) {
+  background: linear-gradient(to top, rgba(0,0,0,0.25), transparent 55%);
+}
