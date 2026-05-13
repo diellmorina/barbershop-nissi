@@ -1,8 +1,7 @@
-// Cloudinary config për upload të fotove nga Admin Paneli.
-// Mbushi këto 2 vlera nga Cloudinary Console.
+// Cloudinary upload settings for Frizer Nissi
 
 export const cloudinaryConfig = {
-  cloudName: "YOUR_CLOUD_NAME",
-  uploadPreset: "YOUR_UNSIGNED_UPLOAD_PRESET",
+  cloudName: "diazvd5iw",
+  uploadPreset: "nissi-barbershop",
   folder: "frizer-nissi/portfolio"
 };
