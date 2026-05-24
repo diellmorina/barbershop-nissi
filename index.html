@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <!-- Custom CSS -->
-  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <!-- Navbar -->
@@ -279,6 +279,10 @@
               <div class="col-md-6">
                 <label for="date" class="form-label">Data</label>
                 <input type="date" class="form-control" id="date" name="data" required>
+              </div>
+              <div class="col-md-6">
+                <label for="time" class="form-label">Ora</label>
+                <input type="time" class="form-control" id="time" name="ora" min="09:00" max="20:00" step="1800" required>
               </div>
               <div class="col-12">
                 <label for="message" class="form-label">Mesazhi</label>

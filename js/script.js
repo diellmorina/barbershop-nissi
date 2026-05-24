@@ -50,7 +50,50 @@ if (bookingForm) {
       submitButton.textContent = 'Duke dërguar...';
     }
 
+    const date = bookingForm.elements['data']?.value;
+    const time = bookingForm.elements['ora']?.value;
+
+    if (!date || !time) {
+      formAlert.textContent = 'Zgjidhni datën dhe orën për rezervimin.';
+      formAlert.classList.remove('d-none');
+      formAlert.classList.add('alert-danger');
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = originalText;
+      }
+      return;
+    }
+
     try {
+      if (!db) {
+        throw new Error('Firestore nuk është i gatshëm. Kontrollo Firebase konfigurimin.');
+      }
+
+      const bookingId = `${date}_${time}`;
+      const bookingRef = doc(db, 'bookings', bookingId);
+      const bookingSnapshot = await getDoc(bookingRef);
+
+      if (bookingSnapshot.exists()) {
+        formAlert.textContent = 'Kjo kohë është e zënë. Zgjidh një kohë tjetër, ju lutem.';
+        formAlert.classList.remove('d-none');
+        formAlert.classList.add('alert-danger');
+        if (submitButton) {
+          submitButton.disabled = false;
+          submitButton.textContent = originalText;
+        }
+        return;
+      }
+
+      await setDoc(bookingRef, {
+        emri: bookingForm.elements['emri']?.value.trim() || '',
+        telefoni: bookingForm.elements['telefoni']?.value.trim() || '',
+        sherbimi: bookingForm.elements['sherbimi']?.value || '',
+        data: date,
+        ora: time,
+        mesazhi: bookingForm.elements['mesazhi']?.value.trim() || '',
+        createdAt: serverTimestamp()
+      });
+
       const response = await fetch(bookingForm.action, {
         method: 'POST',
         body: new FormData(bookingForm),
@@ -64,7 +107,7 @@ if (bookingForm) {
       formAlert.classList.add('alert-success');
       bookingForm.reset();
     } catch (error) {
-      formAlert.textContent = 'Nuk u dërgua. Kontrollo Formspree endpoint ose internetin.';
+      formAlert.textContent = error.message || 'Nuk u dërgua. Kontrollo Formspree endpoint ose internetin.';
       formAlert.classList.remove('d-none');
       formAlert.classList.add('alert-danger');
     } finally {
