@@ -18,13 +18,29 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <div class="loading-screen" id="loadingScreen" aria-live="polite" aria-label="Loading">
+    <div class="loading-screen__content">
+      <img src="assets/logo.webp" alt="Nissi logo" class="loading-screen__logo">
+      <div class="loading-screen__bar" aria-hidden="true">
+        <div class="loading-screen__bar-fill" id="loadingBarFill"></div>
+      </div>
+      <div class="loading-screen__percent" id="loadingPercent">0%</div>
+    </div>
+  </div>
+
   <!-- Navbar -->
   <nav class="navbar navbar-expand-lg navbar-dark fixed-top" id="mainNavbar">
     <div class="container">
-      <a class="navbar-brand fw-bold d-flex align-items-center" href="#home">
-        <img src="assets/logo.webp" alt="Frizer Nissi logo" class="site-logo navbar-logo">
-        <span class="brand-text" data-admin-text="brandName">Nissi</span>
-      </a>
+      <div class="navbar-brand-group">
+        <a class="navbar-brand fw-bold d-flex align-items-center" href="#home">
+          <img src="assets/logo.webp" alt="Frizer Nissi logo" class="site-logo navbar-logo">
+          <span class="brand-text" data-admin-text="brandName">Nissi</span>
+        </a>
+        <span class="navbar-status" id="navbarHoursStatus" aria-live="polite">
+          <span class="navbar-status-dot"></span>
+          <span class="navbar-status-text">Checking...</span>
+        </span>
+      </div>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>

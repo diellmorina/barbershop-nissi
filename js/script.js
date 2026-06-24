@@ -22,6 +22,59 @@ const navLinks = document.querySelectorAll('.nav-link');
 const bookingForm = document.getElementById('bookingForm');
 const formAlert = document.getElementById('formAlert');
 const year = document.getElementById('year');
+const loadingScreen = document.getElementById('loadingScreen');
+const loadingBarFill = document.getElementById('loadingBarFill');
+const loadingPercent = document.getElementById('loadingPercent');
+
+function startLoadingScreen() {
+  if (!loadingScreen || !loadingBarFill || !loadingPercent) return;
+
+  const duration = 2000;
+  const startTime = performance.now();
+
+  const animate = (currentTime) => {
+    const progress = Math.min(100, ((currentTime - startTime) / duration) * 100);
+    loadingBarFill.style.width = `${progress}%`;
+    loadingPercent.textContent = `${Math.round(progress)}%`;
+
+    if (progress < 100) {
+      requestAnimationFrame(animate);
+    } else {
+      loadingScreen.classList.add('is-hidden');
+      setTimeout(() => loadingScreen.remove(), 400);
+    }
+  };
+
+  requestAnimationFrame(animate);
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', startLoadingScreen);
+} else {
+  startLoadingScreen();
+}
+
+function updateNavbarHoursStatus() {
+  const statusEl = document.getElementById('navbarHoursStatus');
+  const statusText = statusEl?.querySelector('.navbar-status-text');
+
+  if (!statusEl || !statusText) return;
+
+  const now = new Date();
+  const day = now.getDay();
+  const currentMinutes = (now.getHours() * 60) + now.getMinutes();
+  const openingMinutes = 9 * 60;
+  const closingMinutes = 20 * 60;
+  const isOpen = day >= 1 && day <= 6 && currentMinutes >= openingMinutes && currentMinutes < closingMinutes;
+
+  statusEl.classList.toggle('open', isOpen);
+  statusEl.classList.toggle('closed', !isOpen);
+  statusText.textContent = isOpen ? 'Open' : 'Closed';
+}
+
+updateNavbarHoursStatus();
+setInterval(updateNavbarHoursStatus, 60000);
+window.addEventListener('focus', updateNavbarHoursStatus);
 
 window.addEventListener('scroll', () => {
   if (navbar) navbar.classList.toggle('navbar-scrolled', window.scrollY > 60);
