@@ -1,10 +1,12 @@
-const CACHE_NAME = 'nissi-app-v1';
+const CACHE_NAME = 'nissi-app-v2';
 const APP_SHELL = [
   './',
   './index.html',
   './style.css',
-  './assets/logo.webp',
-  './assets/app-icon.svg'
+  './assets/logo.png',
+  './assets/apple-touch-icon.png',
+  './assets/app-icon-192.png',
+  './assets/app-icon-512.png'
 ];
 
 self.addEventListener('install', (event) => {

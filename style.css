@@ -79,8 +79,7 @@ h1, h2, h3, .navbar-brand {
   width: 112px;
   height: 112px;
   object-fit: cover;
-  border-radius: 50%;
-  border: 2px solid rgba(212,166,90,0.35);
+  border-radius: 18px;
   box-shadow: 0 14px 40px rgba(0,0,0,0.28);
   margin-bottom: 20px;
   animation: fadeUp 0.7s ease both;
@@ -156,9 +155,9 @@ h1, h2, h3, .navbar-brand {
 
 .site-logo {
   display: inline-block;
-  object-fit: cover;
-  border-radius: 50%;
-  border: 2px solid rgba(212, 166, 90, 0.35);
+  object-fit: contain;
+  border-radius: 12px;
+  border: 0;
   box-shadow: 0 8px 24px rgba(0,0,0,0.22);
   background: #0b0b0d;
 }
