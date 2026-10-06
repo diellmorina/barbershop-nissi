@@ -127,7 +127,7 @@
         <p class="section-kicker">Shërbimet</p>
         <h2 class="section-title">Shërbimet dhe çmimet</h2>
       </div>
-      <div class="row g-4">
+      <div class="row g-4" id="serviceCards">
         <div class="col-md-6 col-lg-3">
           <div class="service-card h-100">
             <i class="bi bi-scissors service-icon"></i>
@@ -316,7 +316,7 @@
                     <button class="btn service-dropdown-toggle dropdown-toggle" id="serviceDropdownButton" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
                       <span id="serviceDropdownLabel">Zgjedh shërbimet</span>
                     </button>
-                    <div class="dropdown-menu service-dropdown-menu" aria-labelledby="serviceDropdownButton">
+                    <div class="dropdown-menu service-dropdown-menu" id="serviceOptions" aria-labelledby="serviceDropdownButton">
                       <label class="form-check"><input class="form-check-input" type="checkbox" data-service-option value="Qethja — 4 €"><span class="form-check-label">Qethja — 4 €</span></label>
                       <label class="form-check"><input class="form-check-input" type="checkbox" data-service-option value="Qethja me zero të fortë — 5 €"><span class="form-check-label">Qethja me zero të fortë — 5 €</span></label>
                       <label class="form-check"><input class="form-check-input" type="checkbox" data-service-option value="Rroja e Kokës — 4 €"><span class="form-check-label">Rroja e Kokës — 4 €</span></label>
@@ -460,6 +460,19 @@
               <label>Telefoni<input class="form-control admin-input" data-admin-input="text" data-key="phone"></label>
               <label>Email<input class="form-control admin-input" data-admin-input="text" data-key="email"></label>
               <label>Orari<input class="form-control admin-input" data-admin-input="text" data-key="hours"></label>
+            </div>
+          </div>
+        </div>
+
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#adminServices">Shërbimet dhe çmimet</button>
+          </h2>
+          <div id="adminServices" class="accordion-collapse collapse" data-bs-parent="#adminAccordion">
+            <div class="accordion-body">
+              <label for="adminServicesInput" class="form-label">Shërbimet dhe çmimet</label>
+              <textarea class="form-control admin-input" id="adminServicesInput" rows="14" data-admin-input="text" data-key="services"></textarea>
+              <small class="text-white-50">Një shërbim për rresht, në formatin: Emri | Çmimi (p.sh. Qethja | 4). Lëri rreshtat bosh për t'i hequr.</small>
             </div>
           </div>
         </div>

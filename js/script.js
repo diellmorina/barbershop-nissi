@@ -29,6 +29,85 @@ const year = document.getElementById('year');
 const loadingScreen = document.getElementById('loadingScreen');
 const loadingBarFill = document.getElementById('loadingBarFill');
 const loadingPercent = document.getElementById('loadingPercent');
+const defaultServices = [
+  ['Qethja', '4'],
+  ['Qethja me zero të fortë', '5'],
+  ['Rroja e Kokës', '4'],
+  ['Rroja', '2'],
+  ['Kufizimi i Mjekrrës', '2'],
+  ['Kufizimi i Mjekrrës me Maqinë', '1'],
+  ['Frizura', '2'],
+  ['Larja e flokëve', '1'],
+  ['Ngjyrosja e flokëve', '7'],
+  ['Ngjyrosja e mjekrrës', '4'],
+  ['Rregullimi i vetullave', '2'],
+  ['Mbushja e Flokëve', '2'],
+  ['Pastrimi i fytyrës me dyll', '5'],
+  ['Pastrimi i fytyrës me maskë', '3']
+];
+
+function parseServiceList(value) {
+  const lines = String(value || '').split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  const services = [];
+
+  for (const line of lines) {
+    const separator = line.lastIndexOf('|');
+    if (separator < 1) continue;
+
+    const name = line.slice(0, separator).trim();
+    const rawPrice = line.slice(separator + 1).trim().replace(/€\s*$/, '').replace(',', '.');
+    if (name && /^\d+(?:\.\d{1,2})?$/.test(rawPrice)) {
+      services.push({ name, price: rawPrice });
+    }
+  }
+
+  return { lines, services };
+}
+
+function renderServices(value, targetDocument = document) {
+  const cards = targetDocument.getElementById('serviceCards');
+  const options = targetDocument.getElementById('serviceOptions');
+  if (!cards && !options) return;
+
+  const { services } = parseServiceList(value);
+  const icons = ['bi-scissors', 'bi-person-standing', 'bi-stars', 'bi-droplet', 'bi-palette', 'bi-eye'];
+
+  if (cards) {
+    cards.replaceChildren(...services.map((service, index) => {
+      const column = targetDocument.createElement('div');
+      column.className = 'col-md-6 col-lg-3';
+      const card = targetDocument.createElement('div');
+      card.className = 'service-card h-100';
+      const icon = targetDocument.createElement('i');
+      icon.className = `bi ${icons[index % icons.length]} service-icon`;
+      const title = targetDocument.createElement('h4');
+      title.textContent = service.name;
+      const price = targetDocument.createElement('p');
+      price.className = 'service-price';
+      price.textContent = `${service.price} €`;
+      card.append(icon, title, price);
+      column.append(card);
+      return column;
+    }));
+  }
+
+  if (options) {
+    options.replaceChildren(...services.map((service) => {
+      const label = targetDocument.createElement('label');
+      label.className = 'form-check';
+      const checkbox = targetDocument.createElement('input');
+      checkbox.className = 'form-check-input';
+      checkbox.type = 'checkbox';
+      checkbox.dataset.serviceOption = '';
+      checkbox.value = `${service.name} — ${service.price} €`;
+      const text = targetDocument.createElement('span');
+      text.className = 'form-check-label';
+      text.textContent = checkbox.value;
+      label.append(checkbox, text);
+      return label;
+    }));
+  }
+}
 
 function startLoadingScreen() {
   if (!loadingScreen || !loadingBarFill || !loadingPercent) return;
@@ -118,8 +197,8 @@ if (bookingForm) {
     }
   }
 
-  bookingForm.querySelectorAll('[data-service-option]').forEach((service) => {
-    service.addEventListener('change', updateSelectedServices);
+  bookingForm.addEventListener('change', (event) => {
+    if (event.target.matches('[data-service-option]')) updateSelectedServices();
   });
 
   function formatTime(minutes) {
@@ -544,6 +623,15 @@ function getAdminDefaults() {
     data[element.dataset.adminImage] = element.getAttribute('src');
   });
 
+  const serviceOptions = Array.from(document.querySelectorAll('[data-service-option]'), (option) => {
+    const value = option.value;
+    const separator = value.lastIndexOf(' — ');
+    if (separator < 1) return '';
+    return `${value.slice(0, separator).trim()} | ${value.slice(separator + 3).replace(/€\s*$/, '').trim()}`;
+  }).filter(Boolean);
+  data.services = (serviceOptions.length
+    ? serviceOptions
+    : defaultServices.map(([name, price]) => `${name} | ${price}`)).join('\n');
   data.gold = getComputedStyle(document.documentElement).getPropertyValue('--gold').trim() || '#d4a65a';
   data.goldDark = getComputedStyle(document.documentElement).getPropertyValue('--gold-dark').trim() || '#b9893b';
   data.softDark = getComputedStyle(document.documentElement).getPropertyValue('--soft-dark').trim() || '#1d1d21';
@@ -567,6 +655,7 @@ function applyAdminData(data, targetDocument = document) {
   if (data?.gold) targetDocument.documentElement.style.setProperty('--gold', data.gold);
   if (data?.goldDark) targetDocument.documentElement.style.setProperty('--gold-dark', data.goldDark);
   if (data?.softDark) targetDocument.documentElement.style.setProperty('--soft-dark', data.softDark);
+  if (typeof data?.services === 'string') renderServices(data.services, targetDocument);
 }
 
 function fillAdminInputs(data) {
@@ -694,6 +783,14 @@ async function saveAdminData(data, successMessage = 'Ndryshimet u ruajtën në F
   if (!settingsRef) {
     showAdminMessage('Firestore nuk është gati. Kontrollo Firebase config.', 'danger');
     return false;
+  }
+
+  if (typeof data.services === 'string') {
+    const { lines, services } = parseServiceList(data.services);
+    if (!services.length || services.length !== lines.length) {
+      showAdminMessage('Kontrollo shërbimet: përdor formatin Emri | Çmimi për çdo rresht.', 'danger');
+      return false;
+    }
   }
 
   try {
