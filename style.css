@@ -589,6 +589,59 @@ h1, h2, h3, .navbar-brand {
 
 .admin-panel-body { padding: 20px 24px 28px; }
 
+.admin-page {
+  min-height: 100vh;
+  padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+  background:
+    radial-gradient(circle at 20% 0%, rgba(212,166,90,0.13), transparent 35%),
+    #111114;
+}
+
+.admin-page .admin-panel {
+  position: relative;
+  inset: auto;
+  width: min(100%, 760px);
+  height: auto;
+  min-height: 100vh;
+  margin: 0 auto;
+  transform: none;
+  transition: none;
+  border: 0;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.admin-page .admin-panel-header {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  padding-top: max(16px, env(safe-area-inset-top));
+  background: rgba(17,17,20,0.96);
+  backdrop-filter: blur(12px);
+}
+
+.admin-page .admin-panel-header h4 {
+  font-size: 1.65rem;
+}
+
+.admin-page .admin-panel-body {
+  padding-right: clamp(14px, 4vw, 24px);
+  padding-bottom: calc(28px + env(safe-area-inset-bottom));
+  padding-left: clamp(14px, 4vw, 24px);
+}
+
+.admin-page .admin-close {
+  display: inline-grid;
+  flex: 0 0 42px;
+  place-items: center;
+  text-decoration: none;
+}
+
+.admin-page .admin-input {
+  min-height: 46px;
+  font-size: 16px;
+}
+
 .admin-note {
   background: rgba(212,166,90,0.12);
   border: 1px solid rgba(212,166,90,0.25);

@@ -338,22 +338,22 @@ function getAdminDefaults() {
   return data;
 }
 
-function applyAdminData(data) {
+function applyAdminData(data, targetDocument = document) {
   Object.entries(data || {}).forEach(([key, value]) => {
     if (typeof value !== 'string') return;
 
-    const textElement = document.querySelector(`[data-admin-text="${key}"]`);
-    const linkElement = document.querySelector(`[data-admin-link="${key}"]`);
-    const imageElement = document.querySelector(`[data-admin-image="${key}"]`);
+    const textElement = targetDocument.querySelector(`[data-admin-text="${key}"]`);
+    const linkElement = targetDocument.querySelector(`[data-admin-link="${key}"]`);
+    const imageElement = targetDocument.querySelector(`[data-admin-image="${key}"]`);
 
     if (textElement) textElement.textContent = value;
     if (linkElement) linkElement.setAttribute('href', value);
     if (imageElement && value) imageElement.setAttribute('src', value);
   });
 
-  if (data?.gold) document.documentElement.style.setProperty('--gold', data.gold);
-  if (data?.goldDark) document.documentElement.style.setProperty('--gold-dark', data.goldDark);
-  if (data?.softDark) document.documentElement.style.setProperty('--soft-dark', data.softDark);
+  if (data?.gold) targetDocument.documentElement.style.setProperty('--gold', data.gold);
+  if (data?.goldDark) targetDocument.documentElement.style.setProperty('--gold-dark', data.goldDark);
+  if (data?.softDark) targetDocument.documentElement.style.setProperty('--soft-dark', data.softDark);
 }
 
 function fillAdminInputs(data) {
@@ -415,8 +415,16 @@ function listenToCloudSettings() {
   });
 }
 
-function cleanHtmlForExport() {
-  const clone = document.documentElement.cloneNode(true);
+async function cleanHtmlForExport() {
+  let sourceDocument = document;
+  if (document.body.classList.contains('admin-page')) {
+    const response = await fetch('./index.html');
+    if (!response.ok) throw new Error(`Faqja kryesore nuk u ngarkua (${response.status}).`);
+    sourceDocument = new DOMParser().parseFromString(await response.text(), 'text/html');
+    applyAdminData(collectAdminInputs(), sourceDocument);
+  }
+
+  const clone = sourceDocument.documentElement.cloneNode(true);
   clone.querySelectorAll('.admin-panel, .admin-panel-backdrop, .admin-open-btn, #exportModal').forEach((element) => element.remove());
   clone.querySelectorAll('[data-admin-text]').forEach((element) => element.removeAttribute('data-admin-text'));
   clone.querySelectorAll('[data-admin-link]').forEach((element) => element.removeAttribute('data-admin-link'));
@@ -643,11 +651,15 @@ if (adminResetBtn) {
 }
 
 if (adminExportBtn) {
-  adminExportBtn.addEventListener('click', () => {
+  adminExportBtn.addEventListener('click', async () => {
     if (!exportCode || !exportModalElement || !window.bootstrap) return;
-    exportCode.value = cleanHtmlForExport();
-    const modal = new bootstrap.Modal(exportModalElement);
-    modal.show();
-    exportCode.select();
+    try {
+      exportCode.value = await cleanHtmlForExport();
+      const modal = new bootstrap.Modal(exportModalElement);
+      modal.show();
+      exportCode.select();
+    } catch (error) {
+      showAdminMessage(`Export dështoi: ${error.message}`, 'danger');
+    }
   });
 }
