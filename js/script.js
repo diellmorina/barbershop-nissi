@@ -175,6 +175,79 @@ if (bookingForm) {
 
 if (year) year.textContent = new Date().getFullYear();
 
+const installAppModalElement = document.getElementById('installAppModal');
+const installAppModal = installAppModalElement ? new bootstrap.Modal(installAppModalElement) : null;
+const isIosDevice = /iphone|ipad|ipod/i.test(navigator.userAgent)
+  || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const installAppButtons = document.querySelectorAll('#installAppButton, [data-install-app]');
+let deferredInstallPrompt = null;
+
+function setInstallButtonsHidden(hidden) {
+  installAppButtons.forEach((button) => {
+    button.hidden = hidden;
+  });
+}
+
+function setInstallInstructions() {
+  const stepOne = document.getElementById('installStepOne');
+  const stepTwo = document.getElementById('installStepTwo');
+  const stepThree = document.getElementById('installStepThree');
+  const intro = document.getElementById('installAppIntro');
+
+  if (isIosDevice) return;
+
+  if (intro) intro.textContent = 'Hap menynë e shfletuesit dhe zgjidh opsionin për ta instaluar ose shtuar faqen në ekranin kryesor.';
+  if (stepOne) stepOne.textContent = 'Prek menynë e shfletuesit (zakonisht ⋮ ose Share).';
+  if (stepTwo) stepTwo.textContent = 'Zgjidh “Install app” ose “Add to Home screen”.';
+  if (stepThree) stepThree.textContent = 'Konfirmo duke prekur “Install” ose “Add”.';
+}
+
+function openInstallInstructions() {
+  setInstallInstructions();
+  installAppModal?.show();
+}
+
+async function installApp() {
+  if (!deferredInstallPrompt) {
+    openInstallInstructions();
+    return;
+  }
+
+  const installPrompt = deferredInstallPrompt;
+  deferredInstallPrompt = null;
+
+  try {
+    await installPrompt.prompt();
+    const { outcome } = await installPrompt.userChoice;
+    if (outcome === 'accepted') setInstallButtonsHidden(true);
+  } catch (error) {
+    console.error('App installation prompt failed:', error);
+    openInstallInstructions();
+  }
+}
+
+if (isStandalone) setInstallButtonsHidden(true);
+
+window.addEventListener('beforeinstallprompt', (event) => {
+  event.preventDefault();
+  deferredInstallPrompt = event;
+});
+
+window.addEventListener('appinstalled', () => {
+  deferredInstallPrompt = null;
+  setInstallButtonsHidden(true);
+});
+
+installAppButtons.forEach((button) => button.addEventListener('click', installApp));
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js')
+      .catch((error) => console.error('Service worker registration failed:', error));
+  });
+}
+
 // =========================
 // Admin Panel: Firebase + Cloudinary only
 // =========================

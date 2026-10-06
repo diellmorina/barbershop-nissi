@@ -212,6 +212,42 @@ h1, h2, h3, .navbar-brand {
   transform: translateY(-2px);
 }
 
+.btn-install-app {
+  color: var(--gold);
+  border: 1px solid var(--gold);
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.btn-install-app:hover {
+  color: #111;
+  background: var(--gold);
+}
+
+.install-app-modal {
+  color: #fff;
+  background: var(--dark);
+  border: 1px solid rgba(212,166,90,0.35);
+  border-radius: 20px;
+}
+
+.install-app-modal .modal-header,
+.install-app-modal .modal-footer {
+  border-color: rgba(255,255,255,0.12);
+}
+
+.install-app-modal .modal-title {
+  color: var(--gold);
+}
+
+.install-app-steps {
+  padding-left: 1.4rem;
+}
+
+.install-app-steps li + li {
+  margin-top: 0.75rem;
+}
+
 .hero-section {
   min-height: 100vh;
   background:
