@@ -11,6 +11,10 @@ import {
   getFirestore,
   doc,
   getDoc,
+  getDocs,
+  collection,
+  query,
+  where,
   setDoc,
   deleteDoc,
   onSnapshot,
@@ -90,6 +94,151 @@ navLinks.forEach(link => {
 });
 
 if (bookingForm) {
+  const dateInput = bookingForm.elements['data'];
+  const timeSelect = bookingForm.elements['ora'];
+  const serviceDropdownLabel = document.getElementById('serviceDropdownLabel');
+  const appointmentDuration = 40;
+  const lunchStart = 12 * 60;
+  const lunchEnd = 13 * 60;
+  const closingTime = 20 * 60;
+  let bookingsForDate = [];
+  let bookingsDate = '';
+  let availabilityRequest = 0;
+
+  function updateSelectedServices() {
+    const selectedServices = Array.from(
+      bookingForm.querySelectorAll('[data-service-option]:checked'),
+      (service) => service.value
+    );
+    bookingForm.elements['sherbimi'].value = selectedServices.join(', ');
+    if (serviceDropdownLabel) {
+      serviceDropdownLabel.textContent = selectedServices.length
+        ? `${selectedServices.length} shërbime të zgjedhura`
+        : 'Zgjedh shërbimet';
+    }
+  }
+
+  bookingForm.querySelectorAll('[data-service-option]').forEach((service) => {
+    service.addEventListener('change', updateSelectedServices);
+  });
+
+  function formatTime(minutes) {
+    const hours = Math.floor(minutes / 60);
+    const minute = minutes % 60;
+    return `${String(hours).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+  }
+
+  function getAppointmentTimes() {
+    const times = [];
+
+    for (let start = 9 * 60; start + appointmentDuration <= lunchStart; start += appointmentDuration) {
+      times.push(formatTime(start));
+    }
+
+    for (let start = lunchEnd; start + appointmentDuration <= closingTime; start += appointmentDuration) {
+      times.push(formatTime(start));
+    }
+
+    return times;
+  }
+
+  function timeToMinutes(time) {
+    const [hours, minutes] = time.split(':').map(Number);
+    return (hours * 60) + minutes;
+  }
+
+  function getTodayDate() {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  }
+
+  function showDayOverMessage() {
+    if (!formAlert) return;
+
+    formAlert.textContent = 'Dita e sotme ka përfunduar. Kthehuni nesër për të rezervuar.';
+    formAlert.className = 'alert alert-danger mb-0';
+    formAlert.dataset.dayOver = 'true';
+  }
+
+  function updateBookingAvailability() {
+    const now = new Date();
+    const today = getTodayDate();
+    const currentTime = (now.getHours() * 60) + now.getMinutes();
+    const isDayOver = currentTime >= closingTime;
+    const selectedDate = dateInput?.value || '';
+    const selectedTime = timeSelect?.value || '';
+
+    if (dateInput) dateInput.min = today;
+
+    if (selectedDate === today && isDayOver) {
+      showDayOverMessage();
+    } else if (formAlert?.dataset.dayOver === 'true') {
+      formAlert.className = 'alert d-none mb-0';
+      delete formAlert.dataset.dayOver;
+    }
+
+    if (timeSelect) {
+      timeSelect.replaceChildren(new Option('Zgjedh orën', ''));
+      getAppointmentTimes().forEach((time) => {
+        const start = timeToMinutes(time);
+        const overlapsBooking = bookingsDate === selectedDate && bookingsForDate.some((bookedStart) => (
+          start < bookedStart + appointmentDuration
+          && start + appointmentDuration > bookedStart
+        ));
+        const option = new Option(time, time);
+        option.disabled = (selectedDate === today && start <= currentTime)
+          || (selectedDate && bookingsDate !== selectedDate)
+          || overlapsBooking;
+        timeSelect.add(option);
+      });
+
+      if (selectedTime && Array.from(timeSelect.options).some((option) => option.value === selectedTime && !option.disabled)) {
+        timeSelect.value = selectedTime;
+      }
+    }
+  }
+
+  async function loadBookingsForSelectedDate() {
+    const selectedDate = dateInput?.value || '';
+    const requestId = ++availabilityRequest;
+    bookingsForDate = [];
+    bookingsDate = '';
+    updateBookingAvailability();
+
+    if (!selectedDate) return;
+
+    try {
+      if (!db) throw new Error('Firestore nuk është i gatshëm. Kontrollo Firebase konfigurimin.');
+
+      const bookingsQuery = query(collection(db, 'bookings'), where('data', '==', selectedDate));
+      const bookingSnapshot = await getDocs(bookingsQuery);
+      if (requestId !== availabilityRequest) return;
+
+      bookingsForDate = bookingSnapshot.docs
+        .map((booking) => booking.data().ora)
+        .filter((time) => typeof time === 'string' && /^\d{2}:\d{2}$/.test(time))
+        .map(timeToMinutes);
+      bookingsDate = selectedDate;
+      if (formAlert?.dataset.availabilityError === 'true') {
+        formAlert.className = 'alert d-none mb-0';
+        delete formAlert.dataset.availabilityError;
+      }
+      updateBookingAvailability();
+    } catch (error) {
+      if (requestId !== availabilityRequest) return;
+      if (formAlert) {
+        formAlert.textContent = `Nuk mund të kontrollohen oraret e lira: ${error.message || 'Gabim gjatë leximit të rezervimeve.'}`;
+        formAlert.className = 'alert alert-danger mb-0';
+        formAlert.dataset.availabilityError = 'true';
+      }
+    }
+  }
+
+  dateInput?.addEventListener('input', loadBookingsForSelectedDate);
+  dateInput?.addEventListener('change', loadBookingsForSelectedDate);
+  updateBookingAvailability();
+  setInterval(updateBookingAvailability, 60000);
+
   bookingForm.addEventListener('submit', async (event) => {
     event.preventDefault();
     if (!formAlert) return;
@@ -105,6 +254,35 @@ if (bookingForm) {
 
     const date = bookingForm.elements['data']?.value;
     const time = bookingForm.elements['ora']?.value;
+    const selectedServices = Array.from(
+      bookingForm.querySelectorAll('[data-service-option]:checked'),
+      (service) => service.value
+    );
+    const now = new Date();
+    const today = getTodayDate();
+    const currentTime = (now.getHours() * 60) + now.getMinutes();
+
+    if (date === today && currentTime >= closingTime) {
+      showDayOverMessage();
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = originalText;
+      }
+      return;
+    }
+
+    if (selectedServices.length === 0) {
+      formAlert.textContent = 'Zgjidhni të paktën një shërbim.';
+      formAlert.classList.remove('d-none');
+      formAlert.classList.add('alert-danger');
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = originalText;
+      }
+      return;
+    }
+
+    updateSelectedServices();
 
     if (!date || !time) {
       formAlert.textContent = 'Zgjidhni datën dhe orën për rezervimin.';
@@ -117,32 +295,62 @@ if (bookingForm) {
       return;
     }
 
+    if (!getAppointmentTimes().includes(time)) {
+      formAlert.textContent = 'Zgjidhni një orar të vlefshëm për termin.';
+      formAlert.classList.remove('d-none');
+      formAlert.classList.add('alert-danger');
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = originalText;
+      }
+      return;
+    }
+
+    const selectedDateTime = new Date(`${date}T${time}`);
+    if (date < dateInput.min || selectedDateTime <= new Date()) {
+      formAlert.textContent = date < dateInput.min
+        ? 'Data e rezervimit nuk mund të jetë në të kaluarën.'
+        : 'Kjo orë ka kaluar. Zgjidhni një orë të ardhshme.';
+      formAlert.classList.remove('d-none');
+      formAlert.classList.add('alert-danger');
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = originalText;
+      }
+      updateBookingAvailability();
+      return;
+    }
+
     try {
       if (!db) {
         throw new Error('Firestore nuk është i gatshëm. Kontrollo Firebase konfigurimin.');
       }
 
-      const bookingId = `${date}_${time}`;
-      const bookingRef = doc(db, 'bookings', bookingId);
-      const bookingSnapshot = await getDoc(bookingRef);
+      const bookingsQuery = query(collection(db, 'bookings'), where('data', '==', date));
+      const bookingSnapshot = await getDocs(bookingsQuery);
+      const appointmentStart = timeToMinutes(time);
+      const hasConflict = bookingSnapshot.docs.some((booking) => {
+        const existingTime = booking.data().ora;
+        if (typeof existingTime !== 'string' || !/^\d{2}:\d{2}$/.test(existingTime)) return false;
 
-      if (bookingSnapshot.exists()) {
-        formAlert.textContent = 'Kjo kohë është e zënë. Zgjidh një kohë tjetër, ju lutem.';
-        formAlert.classList.remove('d-none');
-        formAlert.classList.add('alert-danger');
-        if (submitButton) {
-          submitButton.disabled = false;
-          submitButton.textContent = originalText;
-        }
-        return;
+        const existingStart = timeToMinutes(existingTime);
+        return appointmentStart < existingStart + appointmentDuration
+          && appointmentStart + appointmentDuration > existingStart;
+      });
+
+      if (hasConflict) {
+        throw new Error('Ky orar përplaset me një termin tjetër. Zgjidhni një orar tjetër.');
       }
 
+      const bookingId = `${date}_${time}`;
+      const bookingRef = doc(db, 'bookings', bookingId);
       await setDoc(bookingRef, {
         emri: bookingForm.elements['emri']?.value.trim() || '',
         telefoni: bookingForm.elements['telefoni']?.value.trim() || '',
-        sherbimi: bookingForm.elements['sherbimi']?.value || '',
+        sherbimi: selectedServices,
         data: date,
         ora: time,
+        numri_personave: Number(bookingForm.elements['numri_personave']?.value),
         mesazhi: bookingForm.elements['mesazhi']?.value.trim() || '',
         createdAt: serverTimestamp()
       });
@@ -159,6 +367,11 @@ if (bookingForm) {
       formAlert.classList.remove('d-none');
       formAlert.classList.add('alert-success');
       bookingForm.reset();
+      updateSelectedServices();
+      bookingsForDate = [];
+      bookingsDate = '';
+      availabilityRequest++;
+      updateBookingAvailability();
     } catch (error) {
       formAlert.textContent = error.message || 'Nuk u dërgua. Kontrollo Formspree endpoint ose internetin.';
       formAlert.classList.remove('d-none');

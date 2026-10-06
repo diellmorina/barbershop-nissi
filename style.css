@@ -348,6 +348,39 @@ h1, h2, h3, .navbar-brand {
 
 .service-card h4 { font-weight: 700; margin-bottom: 12px; }
 .service-card p { color: #666; margin-bottom: 0; }
+.service-card .service-price { color: var(--gold); font-size: 1.2rem; font-weight: 700; }
+
+.service-choices { min-width: 0; }
+.service-choices legend { float: none; width: auto; }
+.service-dropdown-toggle {
+  width: 100%;
+  min-height: 46px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid #e4e4e4;
+  border-radius: 14px;
+  padding: 13px 15px;
+  color: #495057;
+  background: #fff;
+  text-align: left;
+}
+.service-dropdown-toggle:hover,
+.service-dropdown-toggle:focus {
+  border-color: var(--gold);
+  color: #495057;
+  background: #fff;
+}
+.service-dropdown-menu {
+  width: 100%;
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 12px 14px;
+  border: 1px solid #e4e4e4;
+  border-radius: 14px;
+}
+.service-dropdown-menu .form-check { margin-bottom: 8px; }
+.service-dropdown-menu .form-check:last-child { margin-bottom: 0; }
 
 .portfolio-subtitle { max-width: 650px; }
 
