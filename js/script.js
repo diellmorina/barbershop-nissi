@@ -550,6 +550,8 @@ const adminPanel = document.getElementById('adminPanel');
 const adminBackdrop = document.getElementById('adminBackdrop');
 const adminSaveBtn = document.getElementById('adminSaveBtn');
 const adminResetBtn = document.getElementById('adminResetBtn');
+const adminResetReservationsBtn = document.getElementById('adminResetReservationsBtn');
+const adminResetReservationsConfirm = document.getElementById('adminResetReservationsConfirm');
 const adminExportBtn = document.getElementById('adminExportBtn');
 const adminAlert = document.getElementById('adminAlert');
 const exportCode = document.getElementById('exportCode');
@@ -957,6 +959,56 @@ if (adminResetBtn) {
       showAdminMessage('U kthye në versionin fillestar.');
     } catch (error) {
       showAdminMessage(`Reset nuk u krye: ${firebaseErrorText(error)}`, 'danger');
+    }
+  });
+}
+
+if (adminResetReservationsConfirm && adminResetReservationsBtn) {
+  const toggleResetReservationsButton = () => {
+    adminResetReservationsBtn.disabled = !adminResetReservationsConfirm.checked;
+  };
+
+  adminResetReservationsConfirm.addEventListener('change', toggleResetReservationsButton);
+  toggleResetReservationsButton();
+
+  adminResetReservationsBtn.addEventListener('click', async () => {
+    if (!auth?.currentUser) {
+      showAdminMessage('Duhet të kyçesh si admin.', 'danger');
+      return;
+    }
+
+    if (!adminResetReservationsConfirm.checked) {
+      showAdminMessage('Për të vazhduar, kontrollo kutinë e konfirmimit.', 'danger');
+      return;
+    }
+
+    const confirmed = window.confirm('A je i sigurt që dëshiron të fshish të gjitha rezervimet? Ky veprim nuk mund të kthehet.');
+    if (!confirmed) return;
+
+    try {
+      const bookingsSnapshot = await getDocs(collection(db, 'bookings'));
+      await Promise.all(bookingsSnapshot.docs.map((bookingDoc) => deleteDoc(doc(db, 'bookings', bookingDoc.id))));
+
+      if (typeof bookingsForDate !== 'undefined') {
+        bookingsForDate = [];
+      }
+      if (typeof bookingsDate !== 'undefined') {
+        bookingsDate = '';
+      }
+      if (typeof availabilityRequest !== 'undefined') {
+        availabilityRequest += 1;
+      }
+      if (typeof updateBookingAvailability === 'function') {
+        updateBookingAvailability();
+      }
+
+      adminResetReservationsConfirm.checked = false;
+      adminResetReservationsBtn.disabled = true;
+      showAdminMessage('Të gjitha rezervimet u fshinë me sukses.');
+      setCloudStatus('Të gjitha rezervimet u fshinë nga Firestore.');
+    } catch (error) {
+      showAdminMessage(`Resetimi i rezervimeve dështoi: ${firebaseErrorText(error)}`, 'danger');
+      setCloudStatus('Resetimi i rezervimeve dështoi.');
     }
   });
 }
