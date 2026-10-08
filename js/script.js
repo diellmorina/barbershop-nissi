@@ -176,7 +176,7 @@ if (bookingForm) {
   const dateInput = bookingForm.elements['data'];
   const timeSelect = bookingForm.elements['ora'];
   const serviceDropdownLabel = document.getElementById('serviceDropdownLabel');
-  const appointmentDuration = 40;
+  const appointmentDuration = 60;
   const lunchStart = 12 * 60;
   const lunchEnd = 13 * 60;
   const closingTime = 20 * 60;
