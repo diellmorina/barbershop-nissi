@@ -466,6 +466,11 @@ h1, h2, h3, .navbar-brand {
   border: 1px solid #e4e4e4;
 }
 
+.form-select option:disabled {
+  color: #888;
+  background-color: #e5e5e5;
+}
+
 .form-control:focus,
 .form-select:focus {
   border-color: var(--gold);

@@ -265,6 +265,7 @@ if (bookingForm) {
           && start + appointmentDuration > bookedStart
         ));
         const option = new Option(time, time);
+        if (overlapsBooking) option.textContent = `${time} — E zënë`;
         option.disabled = (selectedDate === today && start <= currentTime)
           || (selectedDate && bookingsDate !== selectedDate)
           || overlapsBooking;
