@@ -187,7 +187,7 @@ if (bookingForm) {
     'kurv', 'kurva', 'kurve', 'kurven', 'penis', 'tonfispidhmakaronash',
     'pidh', 'pidhi', 'pidhen', 'pidhin', 'pussi', 'pussy', 'byth', 'bytha',
     'bythin', 'bythen', 'qif', 'qifa', 'qifja', 'qifsha', 'qifsh', 'qija',
-    'qij', 'qije', 'kopil', 'kopili', 'kopilin',
+    'qij', 'qije', 'tqifsha mamin', 'kopil', 'kopili', 'kopilin',
     'fuck', 'fucker', 'fucking', 'fucked', 'motherfucker', 'shit', 'shitty', 'bullshit',
     'bitch', 'bitchy', 'asshole', 'arsehole', 'bastard', 'dick', 'dickhead',
     'cunt', 'whore', 'slut', 'damn', 'crap'
