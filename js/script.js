@@ -182,6 +182,16 @@ if (bookingForm) {
   const lunchStart = 12 * 60;
   const lunchEnd = 13 * 60;
   const closingTime = 20 * 60;
+  const profanityTerms = [
+    'vrl', 'kar', 'kari', 'karin', 'karen', 'okar', 'mut', 'muti', 'mutin',
+    'kurv', 'kurva', 'kurve', 'kurven', 'penis', 'tonfispidhmakaronash',
+    'pidh', 'pidhi', 'pidhen', 'pidhin', 'pussi', 'pussy', 'byth', 'bytha',
+    'bythin', 'bythen', 'qif', 'qifa', 'qifja', 'qifsha', 'qifsh', 'qija',
+    'qij', 'qije', 'kopil', 'kopili', 'kopilin',
+    'fuck', 'fucker', 'fucking', 'fucked', 'motherfucker', 'shit', 'shitty', 'bullshit',
+    'bitch', 'bitchy', 'asshole', 'arsehole', 'bastard', 'dick', 'dickhead',
+    'cunt', 'whore', 'slut', 'damn', 'crap'
+  ];
   let bookingsForDate = [];
   let bookingsDate = '';
   let availabilityRequest = 0;
@@ -261,6 +271,18 @@ if (bookingForm) {
   function getTodayDate() {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  }
+
+  function containsProfanity(value) {
+    const normalizedText = String(value || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
+
+    return profanityTerms.some((term) => {
+      const pattern = new RegExp(`(?:^|[^a-z0-9])${term}(?=$|[^a-z0-9])`);
+      return pattern.test(normalizedText);
+    });
   }
 
   function showDayOverMessage() {
@@ -383,12 +405,25 @@ if (bookingForm) {
       bookingForm.querySelectorAll('[data-service-option]:checked'),
       (service) => service.value
     );
+    const customerName = bookingForm.elements['emri']?.value || '';
+    const message = bookingForm.elements['mesazhi']?.value || '';
     const now = new Date();
     const today = getTodayDate();
     const currentTime = (now.getHours() * 60) + now.getMinutes();
 
     if (date === today && currentTime >= closingTime) {
       showDayOverMessage();
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = originalText;
+      }
+      return;
+    }
+
+    if (containsProfanity(customerName) || containsProfanity(message)) {
+      formAlert.textContent = 'Rezervimi nuk mund të dërgohet sepse emri ose mesazhi përmban fjalë fyese.';
+      formAlert.classList.remove('d-none');
+      formAlert.classList.add('alert-danger');
       if (submitButton) {
         submitButton.disabled = false;
         submitButton.textContent = originalText;
