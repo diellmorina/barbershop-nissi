@@ -176,7 +176,9 @@ if (bookingForm) {
   const dateInput = bookingForm.elements['data'];
   const timeSelect = bookingForm.elements['ora'];
   const serviceDropdownLabel = document.getElementById('serviceDropdownLabel');
-  const appointmentDuration = 60;
+  const peopleInput = bookingForm.elements['numri_personave'];
+  const appointmentDurationLabel = document.getElementById('appointmentDuration');
+  const minutesPerPerson = 40;
   const lunchStart = 12 * 60;
   const lunchEnd = 13 * 60;
   const closingTime = 20 * 60;
@@ -207,14 +209,44 @@ if (bookingForm) {
     return `${String(hours).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
   }
 
-  function getAppointmentTimes() {
+  function getSelectedPeople() {
+    const people = Number(peopleInput?.value);
+    return Number.isInteger(people) && people >= 1 && people <= 15 ? people : 1;
+  }
+
+  function getAppointmentDuration(people = getSelectedPeople()) {
+    return minutesPerPerson * people;
+  }
+
+  function getBookedAppointmentDuration(booking) {
+    const duration = Number(booking.kohezgjatja_minuta);
+    return Number.isInteger(duration) && duration > 0 ? duration : 60;
+  }
+
+  function formatDuration(minutes) {
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    const minuteLabel = remainingMinutes === 1 ? 'minutë' : 'minuta';
+
+    if (!hours) return `${minutes} ${minuteLabel}`;
+    if (!remainingMinutes) return `${hours} orë`;
+    return `${hours} orë e ${remainingMinutes} ${minuteLabel}`;
+  }
+
+  function updateAppointmentDurationLabel() {
+    if (appointmentDurationLabel) {
+      appointmentDurationLabel.textContent = `Kohëzgjatja: ${formatDuration(getAppointmentDuration())}`;
+    }
+  }
+
+  function getAppointmentTimes(duration) {
     const times = [];
 
-    for (let start = 9 * 60; start + appointmentDuration <= lunchStart; start += appointmentDuration) {
+    for (let start = 9 * 60; start + duration <= lunchStart; start += duration) {
       times.push(formatTime(start));
     }
 
-    for (let start = lunchEnd; start + appointmentDuration <= closingTime; start += appointmentDuration) {
+    for (let start = lunchEnd; start + duration <= closingTime; start += duration) {
       times.push(formatTime(start));
     }
 
@@ -246,6 +278,7 @@ if (bookingForm) {
     const isDayOver = currentTime >= closingTime;
     const selectedDate = dateInput?.value || '';
     const selectedTime = timeSelect?.value || '';
+    const appointmentDuration = getAppointmentDuration();
 
     if (dateInput) dateInput.min = today;
 
@@ -258,11 +291,11 @@ if (bookingForm) {
 
     if (timeSelect) {
       timeSelect.replaceChildren(new Option('Zgjedh orën', ''));
-      getAppointmentTimes().forEach((time) => {
+      getAppointmentTimes(appointmentDuration).forEach((time) => {
         const start = timeToMinutes(time);
-        const overlapsBooking = bookingsDate === selectedDate && bookingsForDate.some((bookedStart) => (
-          start < bookedStart + appointmentDuration
-          && start + appointmentDuration > bookedStart
+        const overlapsBooking = bookingsDate === selectedDate && bookingsForDate.some((booking) => (
+          start < booking.start + booking.duration
+          && start + appointmentDuration > booking.start
         ));
         const option = new Option(time, time);
         if (overlapsBooking) option.textContent = `${time} — E zënë`;
@@ -295,9 +328,12 @@ if (bookingForm) {
       if (requestId !== availabilityRequest) return;
 
       bookingsForDate = bookingSnapshot.docs
-        .map((booking) => booking.data().ora)
-        .filter((time) => typeof time === 'string' && /^\d{2}:\d{2}$/.test(time))
-        .map(timeToMinutes);
+        .map((booking) => booking.data())
+        .filter((booking) => typeof booking.ora === 'string' && /^\d{2}:\d{2}$/.test(booking.ora))
+        .map((booking) => ({
+          start: timeToMinutes(booking.ora),
+          duration: getBookedAppointmentDuration(booking)
+        }));
       bookingsDate = selectedDate;
       if (formAlert?.dataset.availabilityError === 'true') {
         formAlert.className = 'alert d-none mb-0';
@@ -316,6 +352,15 @@ if (bookingForm) {
 
   dateInput?.addEventListener('input', loadBookingsForSelectedDate);
   dateInput?.addEventListener('change', loadBookingsForSelectedDate);
+  peopleInput?.addEventListener('input', () => {
+    updateAppointmentDurationLabel();
+    updateBookingAvailability();
+  });
+  peopleInput?.addEventListener('change', () => {
+    updateAppointmentDurationLabel();
+    updateBookingAvailability();
+  });
+  updateAppointmentDurationLabel();
   updateBookingAvailability();
   setInterval(updateBookingAvailability, 60000);
 
@@ -375,7 +420,9 @@ if (bookingForm) {
       return;
     }
 
-    if (!getAppointmentTimes().includes(time)) {
+    const people = getSelectedPeople();
+    const appointmentDuration = getAppointmentDuration(people);
+    if (!peopleInput?.reportValidity() || !getAppointmentTimes(appointmentDuration).includes(time)) {
       formAlert.textContent = 'Zgjidhni një orar të vlefshëm për termin.';
       formAlert.classList.remove('d-none');
       formAlert.classList.add('alert-danger');
@@ -410,11 +457,12 @@ if (bookingForm) {
       const bookingSnapshot = await getDocs(bookingsQuery);
       const appointmentStart = timeToMinutes(time);
       const hasConflict = bookingSnapshot.docs.some((booking) => {
-        const existingTime = booking.data().ora;
+        const bookingData = booking.data();
+        const existingTime = bookingData.ora;
         if (typeof existingTime !== 'string' || !/^\d{2}:\d{2}$/.test(existingTime)) return false;
 
         const existingStart = timeToMinutes(existingTime);
-        return appointmentStart < existingStart + appointmentDuration
+        return appointmentStart < existingStart + getBookedAppointmentDuration(bookingData)
           && appointmentStart + appointmentDuration > existingStart;
       });
 
@@ -430,7 +478,8 @@ if (bookingForm) {
         sherbimi: selectedServices,
         data: date,
         ora: time,
-        numri_personave: Number(bookingForm.elements['numri_personave']?.value),
+        numri_personave: people,
+        kohezgjatja_minuta: appointmentDuration,
         mesazhi: bookingForm.elements['mesazhi']?.value.trim() || '',
         createdAt: serverTimestamp()
       });
@@ -448,6 +497,7 @@ if (bookingForm) {
       formAlert.classList.add('alert-success');
       bookingForm.reset();
       updateSelectedServices();
+      updateAppointmentDurationLabel();
       bookingsForDate = [];
       bookingsDate = '';
       availabilityRequest++;
