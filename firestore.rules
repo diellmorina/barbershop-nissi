@@ -10,50 +10,7 @@ service cloud.firestore {
 
     match /bookings/{booking} {
       allow read: if true;
-      allow create: if request.auth != null
-        && request.auth.token.whatsapp_phone is string
-        && request.resource.data.telefoni == request.auth.token.whatsapp_phone
-        && request.resource.data.keys().hasOnly([
-          'emri',
-          'telefoni',
-          'sherbimi',
-          'data',
-          'ora',
-          'numri_personave',
-          'kohezgjatja_minuta',
-          'mesazhi',
-          'createdAt'
-        ])
-        && request.resource.data.keys().hasAll([
-          'emri',
-          'telefoni',
-          'sherbimi',
-          'data',
-          'ora',
-          'numri_personave',
-          'kohezgjatja_minuta',
-          'mesazhi',
-          'createdAt'
-        ])
-        && request.resource.data.emri is string
-        && request.resource.data.emri.size() > 0
-        && request.resource.data.emri.size() <= 100
-        && request.resource.data.telefoni.matches('^\\+[1-9][0-9]{7,14}$')
-        && request.resource.data.sherbimi is list
-        && request.resource.data.sherbimi.size() > 0
-        && request.resource.data.sherbimi.size() <= 14
-        && request.resource.data.data is string
-        && request.resource.data.data.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
-        && request.resource.data.ora is string
-        && request.resource.data.ora.matches('^([01][0-9]|2[0-3]):[0-5][0-9]$')
-        && request.resource.data.numri_personave is int
-        && request.resource.data.numri_personave >= 1
-        && request.resource.data.numri_personave <= 15
-        && request.resource.data.kohezgjatja_minuta is int
-        && request.resource.data.kohezgjatja_minuta == request.resource.data.numri_personave * 40
-        && request.resource.data.mesazhi is string
-        && request.resource.data.mesazhi.size() <= 1000
-        && request.resource.data.createdAt == request.time;
+      allow create: if true;
       allow update: if false;
       allow delete: if request.auth != null
         && request.auth.token.email in ['frizernissi@gmail.com', 'admin@admin.com'];

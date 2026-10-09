@@ -1,11 +1,9 @@
 import { firebaseConfig, adminDocPath } from './firebase-config.js';
 import { cloudinaryConfig } from './cloudinary-config.js';
-import { otpApiBaseUrl } from './otp-config.js';
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js';
 import {
   getAuth,
   signInWithEmailAndPassword,
-  signInWithCustomToken,
   onAuthStateChanged,
   signOut
 } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
@@ -180,16 +178,10 @@ if (bookingForm) {
   const serviceDropdownLabel = document.getElementById('serviceDropdownLabel');
   const peopleInput = bookingForm.elements['numri_personave'];
   const appointmentDurationLabel = document.getElementById('appointmentDuration');
-  const phoneInput = bookingForm.elements['telefoni'];
-  const phoneCodeInput = document.getElementById('phoneCode');
-  const sendPhoneCodeButton = document.getElementById('sendPhoneCodeButton');
-  const verifyPhoneCodeButton = document.getElementById('verifyPhoneCodeButton');
-  const phoneVerificationStatus = document.getElementById('phoneVerificationStatus');
   const minutesPerPerson = 40;
   const lunchStart = 12 * 60;
   const lunchEnd = 13 * 60;
   const closingTime = 20 * 60;
-  let verifiedPhone = '';
   const profanityTerms = [
     'vrl', 'kar', 'okar', 'mut', 'kurv', 'penis', 'tonfispidhmakaronash',
     'pidh', 'pussi', 'pussy', 'byth', 'qif', 'tqif', 'tqifsha mamin', 'kopil',
@@ -291,97 +283,6 @@ if (bookingForm) {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   }
-
-  function normalizePhoneNumber(value) {
-    const phone = String(value || '').replace(/[\s()-]/g, '');
-    return /^\+[1-9]\d{7,14}$/.test(phone) ? phone : '';
-  }
-
-  async function callPhoneOtpApi(path, data) {
-    if (!otpApiBaseUrl) {
-      throw new Error('Verifikimi në WhatsApp nuk është konfiguruar ende.');
-    }
-
-    const response = await fetch(`${otpApiBaseUrl.replace(/\/+$/, '')}/${path}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    let result;
-    try {
-      result = await response.json();
-    } catch {
-      throw new Error('Serveri ktheu përgjigje të pavlefshme.');
-    }
-    if (!response.ok) {
-      throw new Error(result.error || 'Kërkesa për verifikim dështoi.');
-    }
-    return result;
-  }
-
-  function setPhoneVerificationStatus(message, isError = false) {
-    if (!phoneVerificationStatus) return;
-    phoneVerificationStatus.textContent = message;
-    phoneVerificationStatus.classList.toggle('text-danger', isError);
-    phoneVerificationStatus.classList.toggle('text-success', !isError);
-  }
-
-  phoneInput?.addEventListener('input', () => {
-    verifiedPhone = '';
-    setPhoneVerificationStatus('Numri ndryshoi. Dërgo dhe verifiko një kod të ri.');
-  });
-
-  sendPhoneCodeButton?.addEventListener('click', async () => {
-    const phone = normalizePhoneNumber(phoneInput?.value);
-    if (!phone) {
-      setPhoneVerificationStatus('Shkruaj numrin në format ndërkombëtar, p.sh. +38349123456.', true);
-      return;
-    }
-
-    sendPhoneCodeButton.disabled = true;
-    setPhoneVerificationStatus('Duke dërguar kodin në WhatsApp...');
-    try {
-      const result = await callPhoneOtpApi('send-code', { phone });
-      setPhoneVerificationStatus(result.message || 'Kodi u dërgua. Kontrollo WhatsApp-in.');
-    } catch (error) {
-      setPhoneVerificationStatus(error.message || 'Kodi nuk u dërgua. Provo përsëri më vonë.', true);
-    } finally {
-      sendPhoneCodeButton.disabled = false;
-    }
-  });
-
-  verifyPhoneCodeButton?.addEventListener('click', async () => {
-    const phone = normalizePhoneNumber(phoneInput?.value);
-    const code = phoneCodeInput?.value.trim() || '';
-    if (!phone || !/^\d{6}$/.test(code)) {
-      setPhoneVerificationStatus('Kontrollo numrin dhe shkruaj kodin 6-shifror.', true);
-      return;
-    }
-
-    verifyPhoneCodeButton.disabled = true;
-    setPhoneVerificationStatus('Duke verifikuar kodin...');
-    try {
-      if (!auth) throw new Error('Firebase Authentication nuk është gati.');
-      const result = await callPhoneOtpApi('verify-code', { phone, code });
-      if (typeof result.firebaseCustomToken !== 'string') {
-        throw new Error('Serveri nuk ktheu token të vlefshëm për Firebase.');
-      }
-
-      const credential = await signInWithCustomToken(auth, result.firebaseCustomToken);
-      const tokenResult = await credential.user.getIdTokenResult(true);
-      if (tokenResult.claims.whatsapp_phone !== phone) {
-        throw new Error('Numri i verifikuar nuk përputhet.');
-      }
-
-      verifiedPhone = phone;
-      setPhoneVerificationStatus('Numri u verifikua me sukses.');
-    } catch (error) {
-      verifiedPhone = '';
-      setPhoneVerificationStatus(error.message || 'Kodi është i pasaktë ose ka skaduar.', true);
-    } finally {
-      verifyPhoneCodeButton.disabled = false;
-    }
-  });
 
   function containsProfanity(value) {
     const normalizedText = String(value || '')
@@ -506,12 +407,6 @@ if (bookingForm) {
     if (!formAlert) return;
 
     formAlert.className = 'alert d-none mb-0';
-    const normalizedPhone = normalizePhoneNumber(phoneInput?.value);
-    if (!normalizedPhone || verifiedPhone !== normalizedPhone) {
-      formAlert.textContent = 'Verifiko numrin e telefonit me kodin që të dërguam në WhatsApp.';
-      formAlert.className = 'alert alert-danger mb-0';
-      return;
-    }
 
     const submitButton = bookingForm.querySelector('button[type="submit"]');
     const originalText = submitButton?.textContent || 'Dërgo';
@@ -628,7 +523,7 @@ if (bookingForm) {
       const bookingId = `${date}_${time}`;
       await setDoc(doc(db, 'bookings', bookingId), {
         emri: bookingForm.elements['emri']?.value.trim() || '',
-        telefoni: normalizedPhone,
+        telefoni: bookingForm.elements['telefoni']?.value.trim() || '',
         sherbimi: selectedServices,
         data: date,
         ora: time,
@@ -649,8 +544,6 @@ if (bookingForm) {
       formAlert.classList.remove('d-none');
       formAlert.classList.add('alert-success');
       bookingForm.reset();
-      verifiedPhone = '';
-      setPhoneVerificationStatus('Për të dërguar kodin, numri duhet të jetë i lidhur me WhatsApp.');
       updateSelectedServices();
       updateAppointmentDurationLabel();
       bookingsForDate = [];
