@@ -10,9 +10,7 @@ service cloud.firestore {
 
     match /bookings/{booking} {
       allow read: if true;
-      allow create: if request.auth != null
-        && request.auth.token.email_verified == true
-        && request.resource.data.uid == request.auth.uid;
+      allow create: if true;
       allow update: if false;
       allow delete: if request.auth != null
         && request.auth.token.email == 'frizernissi@gmail.com';
