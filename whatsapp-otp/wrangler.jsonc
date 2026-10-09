@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "nissi-whatsapp-otp",
+  "main": "worker.js",
+  "compatibility_date": "2026-10-09",
+  "vars": {
+    "ALLOWED_ORIGINS": "https://nissi-c1b25.web.app,https://nissi-c1b25.firebaseapp.com",
+    "FIREBASE_SERVICE_ACCOUNT_EMAIL": "REPLACE_WITH_SERVICE_ACCOUNT_EMAIL"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "nissi-whatsapp-otp",
+      "database_id": "REPLACE_WITH_D1_DATABASE_ID"
+    }
+  ]
+}
