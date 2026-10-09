@@ -648,6 +648,7 @@ const adminLogoutBtn = document.getElementById('adminLogoutBtn');
 
 const adminDefaults = getAdminDefaults();
 const firebaseReady = Boolean(firebaseConfig?.apiKey && !firebaseConfig.apiKey.includes('PASTE_'));
+const adminEmails = ['frizernissi@gmail.com', 'admin@admin.com'];
 
 let auth = null;
 let db = null;
@@ -676,6 +677,10 @@ function firebaseErrorText(error) {
   const code = error?.code || 'error';
   const message = error?.message || 'Pa mesazh gabimi.';
   return `${code}: ${message}`;
+}
+
+function isAdminUser(user) {
+  return adminEmails.includes(user?.email?.toLowerCase());
 }
 
 try {
@@ -780,7 +785,7 @@ function toggleAdminPanel() {
 }
 
 function setAdminLoggedIn(user) {
-  const loggedIn = user?.email?.toLowerCase() === 'frizernissi@gmail.com';
+  const loggedIn = isAdminUser(user);
   if (adminLoginForm) adminLoginForm.classList.toggle('d-none', loggedIn);
   if (adminSecureContent) adminSecureContent.classList.toggle('d-none', !loggedIn);
   if (user && adminUserEmail) adminUserEmail.textContent = user.email;
@@ -860,7 +865,7 @@ async function uploadImageToCloudinary(file, key) {
 }
 
 async function saveAdminData(data, successMessage = 'Ndryshimet u ruajtën në Firestore.') {
-  if (auth?.currentUser?.email?.toLowerCase() !== 'frizernissi@gmail.com') {
+  if (!isAdminUser(auth?.currentUser)) {
     showAdminMessage('Duhet të kyçesh si admin.', 'danger');
     return false;
   }
@@ -903,7 +908,7 @@ fillAdminInputs(currentAdminData);
 
 if (firebaseReady && auth) {
   onAuthStateChanged(auth, async (user) => {
-    const isAdmin = user?.email?.toLowerCase() === 'frizernissi@gmail.com';
+    const isAdmin = isAdminUser(user);
     setAdminLoggedIn(isAdmin ? user : null);
 
     if (isAdmin) {
@@ -955,7 +960,7 @@ document.querySelectorAll('[data-file-target]').forEach((fileInput) => {
     const file = fileInput.files?.[0];
     if (!file) return;
 
-    if (auth?.currentUser?.email?.toLowerCase() !== 'frizernissi@gmail.com') {
+    if (!isAdminUser(auth?.currentUser)) {
       showAdminMessage('Kyçu si admin para se të upload-osh foto.', 'danger');
       fileInput.value = '';
       return;
@@ -1001,7 +1006,7 @@ if (adminLoginForm) {
       return;
     }
 
-    if (adminEmail.value.trim().toLowerCase() !== 'frizernissi@gmail.com') {
+    if (!adminEmails.includes(adminEmail.value.trim().toLowerCase())) {
       showAdminMessage('Kjo llogari nuk ka qasje si admin.', 'danger');
       return;
     }
@@ -1032,7 +1037,7 @@ if (adminSaveBtn) {
 
 if (adminResetBtn) {
   adminResetBtn.addEventListener('click', async () => {
-    if (auth?.currentUser?.email?.toLowerCase() !== 'frizernissi@gmail.com') {
+    if (!isAdminUser(auth?.currentUser)) {
       showAdminMessage('Duhet të kyçesh si admin.', 'danger');
       return;
     }
@@ -1060,7 +1065,7 @@ if (adminResetReservationsConfirm && adminResetReservationsBtn) {
   toggleResetReservationsButton();
 
   adminResetReservationsBtn.addEventListener('click', async () => {
-    if (auth?.currentUser?.email?.toLowerCase() !== 'frizernissi@gmail.com') {
+    if (!isAdminUser(auth?.currentUser)) {
       showAdminMessage('Duhet të kyçesh si admin.', 'danger');
       return;
     }

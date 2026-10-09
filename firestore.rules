@@ -5,7 +5,7 @@ service cloud.firestore {
     match /siteContent/{document} {
       allow read: if true;
       allow write: if request.auth != null
-        && request.auth.token.email == 'frizernissi@gmail.com';
+        && request.auth.token.email in ['frizernissi@gmail.com', 'admin@admin.com'];
     }
 
     match /bookings/{booking} {
@@ -13,7 +13,7 @@ service cloud.firestore {
       allow create: if true;
       allow update: if false;
       allow delete: if request.auth != null
-        && request.auth.token.email == 'frizernissi@gmail.com';
+        && request.auth.token.email in ['frizernissi@gmail.com', 'admin@admin.com'];
     }
   }
 }
