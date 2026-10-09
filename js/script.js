@@ -183,14 +183,18 @@ if (bookingForm) {
   const lunchEnd = 13 * 60;
   const closingTime = 20 * 60;
   const profanityTerms = [
-    'vrl', 'kar', 'kari', 'karin', 'karen', 'okar', 'mut', 'muti', 'mutin',
-    'kurv', 'kurva', 'kurve', 'kurven', 'penis', 'tonfispidhmakaronash',
-    'pidh', 'pidhi', 'pidhen', 'pidhin', 'pussi', 'pussy', 'byth', 'bytha',
-    'bythin', 'bythen', 'qif', 'qifa', 'qifja', 'qifsha', 'qifsh', 'qija',
-    'qij', 'qije', 'tqifsha mamin', 'kopil', 'kopili', 'kopilin',
+    'vrl', 'kar', 'okar', 'mut', 'kurv', 'penis', 'tonfispidhmakaronash',
+    'pidh', 'pussi', 'pussy', 'byth', 'qif', 'tqif', 'tqifsha mamin', 'kopil',
+    'budalla', 'budall', 'idiot', 'debil', 'gomar', 'maskara', 'legen',
+    'qelbsire', 'ndyresire', 'palaço', 'palaco', 'rrugaç', 'rrugac', 'injorant',
+    'mutak', 'bastard', 'pederast', 'peder', 'kurve', 'kurva',
     'fuck', 'fucker', 'fucking', 'fucked', 'motherfucker', 'shit', 'shitty', 'bullshit',
-    'bitch', 'bitchy', 'asshole', 'arsehole', 'bastard', 'dick', 'dickhead',
-    'cunt', 'whore', 'slut', 'damn', 'crap'
+    'bitch', 'bitchy', 'asshole', 'arsehole', 'dick', 'dickhead',
+    'cunt', 'whore', 'slut', 'damn', 'crap',
+  ];
+  const profanitySuffixes = [
+    'i', 'in', 'it', 'a', 'at', 'ave', 'aveve', 'e', 'en', 'es', 'esh',
+    'eshit', 'ash', 'as', 'ja', 'sha', 'sh', 'u', 'un', 've', 't', 'ta'
   ];
   let bookingsForDate = [];
   let bookingsDate = '';
@@ -277,12 +281,17 @@ if (bookingForm) {
     const normalizedText = String(value || '')
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
-      .toLowerCase();
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim();
+    const words = normalizedText.split(/\s+/).filter(Boolean);
+    const singleWordTerms = profanityTerms.filter((term) => !term.includes(' '));
+    const phrases = profanityTerms.filter((term) => term.includes(' '));
 
-    return profanityTerms.some((term) => {
-      const pattern = new RegExp(`(?:^|[^a-z0-9])${term}(?=$|[^a-z0-9])`);
-      return pattern.test(normalizedText);
-    });
+    return phrases.some((phrase) => normalizedText.includes(phrase))
+      || words.some((word) => singleWordTerms.some((term) => (
+        word === term || (word.startsWith(term) && profanitySuffixes.includes(word.slice(term.length)))
+      )));
   }
 
   function showDayOverMessage() {
