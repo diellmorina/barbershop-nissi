@@ -4,6 +4,9 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.5/fireba
 import {
   getAuth,
   signInWithEmailAndPassword,
+  sendSignInLinkToEmail,
+  isSignInWithEmailLink,
+  signInWithEmailLink,
   onAuthStateChanged,
   signOut
 } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
@@ -29,6 +32,7 @@ const year = document.getElementById('year');
 const loadingScreen = document.getElementById('loadingScreen');
 const loadingBarFill = document.getElementById('loadingBarFill');
 const loadingPercent = document.getElementById('loadingPercent');
+let handleBookingEmailLink = null;
 const defaultServices = [
   ['Qethja', '4'],
   ['Qethja me zero të fortë', '5'],
@@ -177,7 +181,10 @@ if (bookingForm) {
   const timeSelect = bookingForm.elements['ora'];
   const serviceDropdownLabel = document.getElementById('serviceDropdownLabel');
   const peopleInput = bookingForm.elements['numri_personave'];
+  const emailInput = bookingForm.elements['email'];
   const appointmentDurationLabel = document.getElementById('appointmentDuration');
+  const pendingReservationKey = 'nissiPendingEmailVerifiedReservation';
+  const emailForSignInKey = 'nissiEmailForSignIn';
   const minutesPerPerson = 40;
   const lunchStart = 12 * 60;
   const lunchEnd = 13 * 60;
@@ -270,6 +277,110 @@ if (bookingForm) {
     formAlert.className = 'alert alert-danger mb-0';
     formAlert.dataset.dayOver = 'true';
   }
+
+  function showBookingMessage(message, type = 'danger') {
+    if (!formAlert) return;
+    formAlert.textContent = message;
+    formAlert.className = `alert alert-${type} mb-0`;
+  }
+
+  async function saveVerifiedReservation(reservation, user) {
+    if (!user.emailVerified || user.email?.toLowerCase() !== reservation.booking.email) {
+      throw new Error('Email-i i rezervimit nuk është verifikuar.');
+    }
+    if (!db) throw new Error('Firestore nuk është i gatshëm. Kontrollo Firebase konfigurimin.');
+
+    const { booking, formFields } = reservation;
+    const reservationTime = new Date(`${booking.data}T${booking.ora}`);
+    if (
+      booking.data < getTodayDate()
+      || reservationTime <= new Date()
+      || !getAppointmentTimes(booking.kohezgjatja_minuta).includes(booking.ora)
+    ) {
+      throw new Error('Ky orar nuk është më i vlefshëm. Zgjidhni një datë dhe orë të reja.');
+    }
+
+    const bookingsQuery = query(collection(db, 'bookings'), where('data', '==', booking.data));
+    const bookingSnapshot = await getDocs(bookingsQuery);
+    const appointmentStart = timeToMinutes(booking.ora);
+    const hasConflict = bookingSnapshot.docs.some((existingBooking) => {
+      const existingData = existingBooking.data();
+      if (typeof existingData.ora !== 'string' || !/^\d{2}:\d{2}$/.test(existingData.ora)) return false;
+
+      const existingStart = timeToMinutes(existingData.ora);
+      return appointmentStart < existingStart + getBookedAppointmentDuration(existingData)
+        && appointmentStart + booking.kohezgjatja_minuta > existingStart;
+    });
+    if (hasConflict) {
+      throw new Error('Ky orar u rezervua gjatë verifikimit. Zgjidhni një orar tjetër.');
+    }
+
+    const bookingId = `${booking.data}_${booking.ora}`;
+    const bookingData = { ...booking };
+    delete bookingData.email;
+    await setDoc(doc(db, 'bookings', bookingId), {
+      ...bookingData,
+      uid: user.uid,
+      createdAt: serverTimestamp()
+    });
+
+    localStorage.removeItem(pendingReservationKey);
+    localStorage.removeItem(emailForSignInKey);
+    const formData = new FormData();
+    Object.entries(formFields).forEach(([key, value]) => formData.append(key, value));
+    let notificationSent = false;
+    try {
+      const response = await fetch(bookingForm.action, {
+        method: 'POST',
+        body: formData,
+        headers: { Accept: 'application/json' }
+      });
+      notificationSent = response.ok;
+    } catch (error) {
+      console.error('Njoftimi i rezervimit dështoi pas ruajtjes në Firestore:', error);
+    }
+
+    showBookingMessage(
+      notificationSent
+        ? 'Email-i u verifikua dhe rezervimi u konfirmua me sukses.'
+        : 'Rezervimi u konfirmua, por njoftimi me email dështoi.',
+      notificationSent ? 'success' : 'warning'
+    );
+    bookingForm.reset();
+    updateSelectedServices();
+    updateAppointmentDurationLabel();
+    bookingsForDate = [];
+    bookingsDate = '';
+    availabilityRequest++;
+    updateBookingAvailability();
+    await signOut(auth);
+  }
+
+  handleBookingEmailLink = async () => {
+    if (!auth) return;
+
+    try {
+      const pendingReservation = localStorage.getItem(pendingReservationKey);
+      if (!isSignInWithEmailLink(auth, window.location.href)) {
+        if (pendingReservation && auth.currentUser?.emailVerified) {
+          await saveVerifiedReservation(JSON.parse(pendingReservation), auth.currentUser);
+        }
+        return;
+      }
+
+      let email = localStorage.getItem(emailForSignInKey);
+      if (!email) email = window.prompt('Shkruani email-in ku u dërgua linku i verifikimit:');
+      if (!email) throw new Error('Shkruani email-in e verifikimit për të vazhduar.');
+
+      const credential = await signInWithEmailLink(auth, email.trim(), window.location.href);
+      if (!pendingReservation) throw new Error('Nuk u gjet rezervimi në pritje. Plotësoni përsëri formularin.');
+      await credential.user.getIdToken(true);
+      await saveVerifiedReservation(JSON.parse(pendingReservation), credential.user);
+      window.history.replaceState({}, document.title, `${window.location.pathname}#booking`);
+    } catch (error) {
+      showBookingMessage(error.message || 'Verifikimi dështoi. Kërkoni një link të ri dhe provoni përsëri.');
+    }
+  };
 
   function updateBookingAvailability() {
     const now = new Date();
@@ -449,69 +560,48 @@ if (bookingForm) {
     }
 
     try {
-      if (!db) {
-        throw new Error('Firestore nuk është i gatshëm. Kontrollo Firebase konfigurimin.');
+      if (!firebaseReady || !auth || !db) {
+        throw new Error('Firebase nuk është gati për verifikimin e email-it.');
       }
 
-      const bookingsQuery = query(collection(db, 'bookings'), where('data', '==', date));
-      const bookingSnapshot = await getDocs(bookingsQuery);
-      const appointmentStart = timeToMinutes(time);
-      const hasConflict = bookingSnapshot.docs.some((booking) => {
-        const bookingData = booking.data();
-        const existingTime = bookingData.ora;
-        if (typeof existingTime !== 'string' || !/^\d{2}:\d{2}$/.test(existingTime)) return false;
-
-        const existingStart = timeToMinutes(existingTime);
-        return appointmentStart < existingStart + getBookedAppointmentDuration(bookingData)
-          && appointmentStart + appointmentDuration > existingStart;
-      });
-
-      if (hasConflict) {
-        throw new Error('Ky orar përplaset me një termin tjetër. Zgjidhni një orar tjetër.');
-      }
-
-      const bookingId = `${date}_${time}`;
-      const bookingRef = doc(db, 'bookings', bookingId);
-      await setDoc(bookingRef, {
+      const email = emailInput.value.trim().toLowerCase();
+      const booking = {
         emri: bookingForm.elements['emri']?.value.trim() || '',
         telefoni: bookingForm.elements['telefoni']?.value.trim() || '',
+        email,
         sherbimi: selectedServices,
         data: date,
         ora: time,
         numri_personave: people,
         kohezgjatja_minuta: appointmentDuration,
-        mesazhi: bookingForm.elements['mesazhi']?.value.trim() || '',
-        createdAt: serverTimestamp()
-      });
-
-      const response = await fetch(bookingForm.action, {
-        method: 'POST',
-        body: new FormData(bookingForm),
-        headers: { Accept: 'application/json' }
-      });
-
-      if (!response.ok) throw new Error('Formspree error');
-
-      formAlert.textContent = 'Faleminderit! Rezervimi u dërgua me sukses.';
-      formAlert.classList.remove('d-none');
-      formAlert.classList.add('alert-success');
-      bookingForm.reset();
+        mesazhi: bookingForm.elements['mesazhi']?.value.trim() || ''
+      };
       updateSelectedServices();
-      updateAppointmentDurationLabel();
-      bookingsForDate = [];
-      bookingsDate = '';
-      availabilityRequest++;
-      updateBookingAvailability();
+      const reservation = {
+        booking,
+        formFields: Object.fromEntries(new FormData(bookingForm).entries())
+      };
+      if (auth.currentUser) await signOut(auth);
+      localStorage.setItem(pendingReservationKey, JSON.stringify(reservation));
+      localStorage.setItem(emailForSignInKey, email);
+
+      await sendSignInLinkToEmail(auth, email, {
+        url: `${window.location.origin}${window.location.pathname}#booking`,
+        handleCodeInApp: true
+      });
+      showBookingMessage(
+        'Dërguam link verifikimi në email-in tuaj. Hapeni në të njëjtin shfletues për të konfirmuar rezervimin.',
+        'info'
+      );
     } catch (error) {
-      formAlert.textContent = error.message || 'Nuk u dërgua. Kontrollo Formspree endpoint ose internetin.';
-      formAlert.classList.remove('d-none');
-      formAlert.classList.add('alert-danger');
+      localStorage.removeItem(pendingReservationKey);
+      localStorage.removeItem(emailForSignInKey);
+      showBookingMessage(error.message || 'Nuk u dërgua linku i verifikimit. Kontrolloni email-in dhe provoni përsëri.');
     } finally {
       if (submitButton) {
         submitButton.disabled = false;
         submitButton.textContent = originalText;
       }
-      setTimeout(() => formAlert.classList.add('d-none'), 6000);
     }
   });
 }
@@ -661,6 +751,10 @@ try {
   showAdminMessage(firebaseErrorText(error), 'danger');
 }
 
+if (bookingForm && auth && handleBookingEmailLink) {
+  void handleBookingEmailLink();
+}
+
 function getAdminDefaults() {
   const data = {};
 
@@ -748,7 +842,7 @@ function toggleAdminPanel() {
 }
 
 function setAdminLoggedIn(user) {
-  const loggedIn = Boolean(user);
+  const loggedIn = user?.email?.toLowerCase() === 'frizernissi@gmail.com';
   if (adminLoginForm) adminLoginForm.classList.toggle('d-none', loggedIn);
   if (adminSecureContent) adminSecureContent.classList.toggle('d-none', !loggedIn);
   if (user && adminUserEmail) adminUserEmail.textContent = user.email;
@@ -828,7 +922,7 @@ async function uploadImageToCloudinary(file, key) {
 }
 
 async function saveAdminData(data, successMessage = 'Ndryshimet u ruajtën në Firestore.') {
-  if (!auth?.currentUser) {
+  if (auth?.currentUser?.email?.toLowerCase() !== 'frizernissi@gmail.com') {
     showAdminMessage('Duhet të kyçesh si admin.', 'danger');
     return false;
   }
@@ -871,9 +965,10 @@ fillAdminInputs(currentAdminData);
 
 if (firebaseReady && auth) {
   onAuthStateChanged(auth, async (user) => {
-    setAdminLoggedIn(user);
+    const isAdmin = user?.email?.toLowerCase() === 'frizernissi@gmail.com';
+    setAdminLoggedIn(isAdmin ? user : null);
 
-    if (user) {
+    if (isAdmin) {
       setCloudStatus('I kyçur. Duke lexuar të dhënat...');
       try {
         const snapshot = await getDoc(settingsRef);
@@ -886,7 +981,7 @@ if (firebaseReady && auth) {
         showAdminMessage(`Firestore read error: ${firebaseErrorText(error)}`, 'danger');
       }
     } else {
-      setCloudStatus('Cloud gati. Kyçu për të ndryshuar website-in.');
+      setCloudStatus(user ? 'Email-i u verifikua. Admin paneli nuk është i disponueshëm për këtë llogari.' : 'Cloud gati. Kyçu për të ndryshuar website-in.');
       if (unsubscribeSettings) unsubscribeSettings();
       unsubscribeSettings = null;
     }
@@ -922,7 +1017,7 @@ document.querySelectorAll('[data-file-target]').forEach((fileInput) => {
     const file = fileInput.files?.[0];
     if (!file) return;
 
-    if (!auth?.currentUser) {
+    if (auth?.currentUser?.email?.toLowerCase() !== 'frizernissi@gmail.com') {
       showAdminMessage('Kyçu si admin para se të upload-osh foto.', 'danger');
       fileInput.value = '';
       return;
@@ -968,6 +1063,11 @@ if (adminLoginForm) {
       return;
     }
 
+    if (adminEmail.value.trim().toLowerCase() !== 'frizernissi@gmail.com') {
+      showAdminMessage('Kjo llogari nuk ka qasje si admin.', 'danger');
+      return;
+    }
+
     try {
       await signInWithEmailAndPassword(auth, adminEmail.value.trim(), adminPassword.value);
       adminPassword.value = '';
@@ -994,7 +1094,7 @@ if (adminSaveBtn) {
 
 if (adminResetBtn) {
   adminResetBtn.addEventListener('click', async () => {
-    if (!auth?.currentUser) {
+    if (auth?.currentUser?.email?.toLowerCase() !== 'frizernissi@gmail.com') {
       showAdminMessage('Duhet të kyçesh si admin.', 'danger');
       return;
     }
@@ -1022,7 +1122,7 @@ if (adminResetReservationsConfirm && adminResetReservationsBtn) {
   toggleResetReservationsButton();
 
   adminResetReservationsBtn.addEventListener('click', async () => {
-    if (!auth?.currentUser) {
+    if (auth?.currentUser?.email?.toLowerCase() !== 'frizernissi@gmail.com') {
       showAdminMessage('Duhet të kyçesh si admin.', 'danger');
       return;
     }
