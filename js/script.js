@@ -192,7 +192,12 @@ if (bookingForm) {
     'bitch', 'bitchy', 'asshole', 'arsehole', 'dick', 'dickhead',
     'cunt', 'whore', 'slut', 'damn', 'crap','biq','pidhmakaronash','ta qi',
     'qi','mamin', 'maman', 'tqif', 'tqifsha mamin','robt','rrot kari','rrotkari',
-    'cari','rrot cari','rrotcari','biri i kurves'
+    'cari','rrot cari','rrotcari','biri i kurves','rrot','rrot kari','rrotkari','kurva','tqifsha','tqifsha mamin',
+    'hajvan', 'trap', 'leshko', 'qenef', 'zagar', 'klysh', 'bythqir', 'bythqime',
+    'pidhrob', 'pidhrops', 'kurvar', 'kurvare', 'karllik', 'karllak',
+    'qifsha nanen', 'qifsha baben', 'qifsha motren', 'qifsha fisin', 'qifsha robt',
+    'ta qifsha nanen', 'ta qifsha baben', 'ta qifsha fisin', 'ta qifsha robt',
+    'ta qifsha motren', 'qifsha nanen e baben','vari lesht','vari','lesht'
   ];
   const profanitySuffixes = [
     'i', 'in', 'it', 'a', 'at', 'ave', 'aveve', 'e', 'en', 'es', 'esh',
