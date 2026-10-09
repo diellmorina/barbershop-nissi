@@ -533,12 +533,23 @@ if (bookingForm) {
         createdAt: serverTimestamp()
       });
 
-      const response = await fetch(bookingForm.action, {
-        method: 'POST',
-        body: new FormData(bookingForm),
-        headers: { Accept: 'application/json' }
-      });
-      if (!response.ok) throw new Error('Formspree error');
+      const formspreeEndpoints = [
+        bookingForm.action,
+        'https://formspree.io/f/xaeqjyak'
+      ];
+      const formspreeResults = await Promise.allSettled(formspreeEndpoints.map((endpoint) => (
+        fetch(endpoint, {
+          method: 'POST',
+          body: new FormData(bookingForm),
+          headers: { Accept: 'application/json' }
+        })
+      )));
+      const failedEndpoints = formspreeResults.flatMap((result, index) => (
+        result.status === 'fulfilled' && result.value.ok ? [] : [formspreeEndpoints[index]]
+      ));
+      if (failedEndpoints.length) {
+        throw new Error(`Rezervimi u ruajt, por njoftimi dështoi te: ${failedEndpoints.join(', ')}`);
+      }
 
       formAlert.textContent = 'Faleminderit! Rezervimi u dërgua me sukses.';
       formAlert.classList.remove('d-none');
