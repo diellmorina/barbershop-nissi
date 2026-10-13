@@ -64,22 +64,37 @@ function parseServiceList(value) {
   return { lines, services };
 }
 
+function getServiceIcon(serviceName) {
+  const name = serviceName.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+  if (name.includes('vetull')) return 'bi-eye';
+  if (name.includes('ngjyros')) return 'bi-palette';
+  if (name.includes('larj')) return 'bi-droplet';
+  if (name.includes('maske') || name.includes('dyll')) return 'bi-stars';
+  if (name.includes('mbushj')) return 'bi-scissors';
+  if (name.includes('frizur')) return 'bi-stars';
+  if (name.includes('zero') || name.includes('rroja')) return 'bi-person-standing';
+  if (name.includes('mjekrr') || name.includes('mjekerr') || name.includes('maqine')) return 'bi-scissors';
+  if (name.includes('qeth')) return 'bi-scissors';
+  return 'bi-scissors';
+}
+
 function renderServices(value, targetDocument = document) {
   const cards = targetDocument.getElementById('serviceCards');
   const options = targetDocument.getElementById('serviceOptions');
   if (!cards && !options) return;
 
   const { services } = parseServiceList(value);
-  const icons = ['bi-scissors', 'bi-person-standing', 'bi-stars', 'bi-droplet', 'bi-palette', 'bi-eye'];
 
   if (cards) {
-    cards.replaceChildren(...services.map((service, index) => {
+    cards.replaceChildren(...services.map((service) => {
       const column = targetDocument.createElement('div');
       column.className = 'col-md-6 col-lg-3';
       const card = targetDocument.createElement('div');
       card.className = 'service-card h-100';
       const icon = targetDocument.createElement('i');
-      icon.className = `bi ${icons[index % icons.length]} service-icon`;
+      icon.className = `bi ${getServiceIcon(service.name)} service-icon`;
+      icon.setAttribute('aria-hidden', 'true');
       const title = targetDocument.createElement('h4');
       title.textContent = service.name;
       const price = targetDocument.createElement('p');
