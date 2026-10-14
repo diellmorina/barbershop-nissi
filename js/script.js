@@ -1083,6 +1083,68 @@ if (adminResetBtn) {
   });
 }
 
+const adminReservationsList = document.getElementById('adminReservationsList');
+let unsubscribeReservations = null;
+
+function renderAdminReservations(snapshot) {
+  if (!adminReservationsList) return;
+  adminReservationsList.replaceChildren();
+
+  const bookings = snapshot.docs
+    .map((bookingDoc) => ({ id: bookingDoc.id, ...bookingDoc.data() }))
+    .sort((a, b) => `${a.data} ${a.ora}`.localeCompare(`${b.data} ${b.ora}`));
+
+  if (!bookings.length) {
+    const empty = document.createElement('div');
+    empty.className = 'text-white-50 small';
+    empty.textContent = 'Nuk ka rezervime.';
+    adminReservationsList.append(empty);
+    return;
+  }
+
+  bookings.forEach((booking) => {
+    const row = document.createElement('div');
+    row.className = 'd-flex align-items-center justify-content-between gap-2 py-2 border-bottom border-secondary';
+
+    const info = document.createElement('div');
+    info.className = 'small text-white';
+    info.textContent = `${booking.data} ${booking.ora} — ${booking.emri || '-'} (${booking.telefoni || '-'})`;
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.type = 'button';
+    deleteBtn.className = 'btn btn-sm btn-outline-danger';
+    deleteBtn.innerHTML = '<i class="bi bi-trash3"></i>';
+    deleteBtn.title = 'Fshi këtë rezervim';
+    deleteBtn.addEventListener('click', async () => {
+      if (!window.confirm(`Të fshihet rezervimi ${booking.data} ${booking.ora} (${booking.emri || '-'})?`)) return;
+      try {
+        await deleteDoc(doc(db, 'bookings', booking.id));
+        showAdminMessage('Rezervimi u fshi.');
+      } catch (error) {
+        showAdminMessage(`Fshirja dështoi: ${firebaseErrorText(error)}`, 'danger');
+      }
+    });
+
+    row.append(info, deleteBtn);
+    adminReservationsList.append(row);
+  });
+}
+
+if (firebaseReady && auth && adminReservationsList) {
+  onAuthStateChanged(auth, (user) => {
+    if (unsubscribeReservations) unsubscribeReservations();
+    unsubscribeReservations = null;
+    adminReservationsList.replaceChildren();
+    if (!isAdminUser(user)) return;
+
+    unsubscribeReservations = onSnapshot(
+      collection(db, 'bookings'),
+      renderAdminReservations,
+      (error) => showAdminMessage(`Leximi i rezervimeve dështoi: ${firebaseErrorText(error)}`, 'danger')
+    );
+  });
+}
+
 if (adminResetReservationsConfirm && adminResetReservationsBtn) {
   const toggleResetReservationsButton = () => {
     adminResetReservationsBtn.disabled = !adminResetReservationsConfirm.checked;
